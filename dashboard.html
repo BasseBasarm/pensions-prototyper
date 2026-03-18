@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P+ Rådgiver-Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" style="display:block;padding:8px 20px;background:#0F3460;color:rgba(255,255,255,0.7);font-family:system-ui,sans-serif;font-size:13px;text-decoration:none;font-weight:500;">← Alle koncepter</a>
+  <div id="root"></div>
+
+  <!-- React 18, ReactDOM 18, Babel standalone from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    // ── Farver ────────────────────────────────────────────────────────
+    const PP_DARK = "#1A1A2E";
+    const PP_BLUE = "#0F3460";
+    const PP_ACCENT = "#E94560";
+    const PP_GREEN = "#16A085";
+    const PP_WARN = "#F39C12";
+    const PP_LIGHT = "#F8F9FA";
+
+    // ── Jargon-database ───────────────────────────────────────────────
+    const JARGON_ORDBOG = {
+      "bidragsfri dækning": { forklaring: "den periode efter du stopper med at indbetale, hvor dine forsikringer stadig er aktive", alvorlighed: "høj" },
+      "bidragsfritdækket": { forklaring: "dækket af forsikringer selvom du ikke indbetaler", alvorlighed: "høj" },
+      "bidragsfri": { forklaring: "uden at du skal indbetale", alvorlighed: "høj" },
+      "præmiefritagelse": { forklaring: "en forsikring der gør at P+ overtager dine indbetalinger hvis du bliver invalid", alvorlighed: "høj" },
+      "engangsindskud": { forklaring: "en enkelt indbetaling (ikke en fast månedlig betaling)", alvorlighed: "middel" },
+      "indbetalingskort": { forklaring: "et betalingskort/giro du bruger til at indbetale til din pension", alvorlighed: "middel" },
+      "depotsikring": { forklaring: "en forsikring der udbetaler din opsparing til dine nærmeste hvis du dør", alvorlighed: "høj" },
+      "udbetalingssikring": { forklaring: "en forsikring der sikrer at din pension fortsætter til din partner efter din død", alvorlighed: "høj" },
+      "livrente": { forklaring: "livsvarig pension — udbetales hver måned resten af dit liv", alvorlighed: "middel" },
+      "ratepension": { forklaring: "pension der udbetales over en bestemt periode (fx 10-30 år)", alvorlighed: "middel" },
+      "livscyklus": { forklaring: "P+'s investeringsmodel der automatisk tilpasser risiko efter din alder", alvorlighed: "middel" },
+      "pal-skat": { forklaring: "den skat du betaler af afkastet i din pension (15,3%)", alvorlighed: "middel" },
+      "folkepensionsalder": { forklaring: "den alder hvor du kan få folkepension fra staten", alvorlighed: "lav" },
+      "depot": { forklaring: "din pensionsopsparing / kontoen hvor dine pensionspenge står", alvorlighed: "middel" },
+      "depotrente": { forklaring: "den rente/det afkast du får tilskrevet din opsparing", alvorlighed: "middel" },
+      "begunstigede": { forklaring: "den/de personer der får pengene hvis du dør", alvorlighed: "høj" },
+      "invalidepension": { forklaring: "månedlig udbetaling hvis du bliver for syg til at arbejde", alvorlighed: "middel" },
+      "gennemsnitsrente": { forklaring: "en type pensionsordning med en fast, garanteret rente", alvorlighed: "middel" },
+      "markedsrente": { forklaring: "en type pensionsordning hvor afkastet følger markedet", alvorlighed: "middel" },
+      "omvalg": { forklaring: "at skifte fra én type pensionsordning til en anden", alvorlighed: "middel" },
+    };
+
+    function analyserSvarForJargon(svarTekst) {
+      const tekst = svarTekst.toLowerCase();
+      const fundne = [];
+      for (const [term, data] of Object.entries(JARGON_ORDBOG)) {
+        if (tekst.includes(term.toLowerCase())) {
+          fundne.push({ term, ...data });
+        }
+      }
+      // Sortér: høj alvorlighed først
+      fundne.sort((a, b) => {
+        const order = { "høj": 0, "middel": 1, "lav": 2 };
+        return order[a.alvorlighed] - order[b.alvorlighed];
+      });
+      return fundne;
+    }
+
+    // ── Vidensbase ────────────────────────────────────────────────────
+    const VIDENSBASE = {
+      fyret: {
+        label: "Fyret / fritstillet",
+        icon: "⚡",
+        color: PP_ACCENT,
+        aabning: "Tak for din mail. Lad mig give dig et klart overblik over, hvad der sker med dine forsikringer og din pension nu.",
+        svarblokke: [
+          { title: "Dine forsikringer kører videre i 3 måneder", tekst: "Den gode nyhed er, at du stadig er dækket. Alle dine forsikringer (invalidepension, dødsfaldssum, sundhedsforsikring) kører videre i 3 måneder efter din sidste indbetaling — uden at det koster dig noget ekstra.", vigtigt: true },
+          { title: "Du kan forlænge dækningen i op til 3 år", tekst: "Ring eller skriv til os, så forlænger vi perioden. Forsikringspræmien trækkes fra din opsparing — du skal ikke selv indbetale.", vigtigt: true },
+          { title: "Hvad koster forsikringerne?", tekst: "Forsikringerne koster ca. 495 kr./md., som trækkes fra opsparingen. Dertil kommer en afgift på 60% af det hævede beløb. Vi anbefaler at beholde dækningen — særligt den del der sikrer dig ved sygdom.", vigtigt: true },
+          { title: "Din opsparing bliver stående", tekst: "Dine pensionspenge forsvinder ikke. De forbliver investeret og genererer stadig afkast.", vigtigt: false },
+        ],
+        handling: "Vil du have, at jeg forlænger din bidragsfri dækning? Det tager 2 minutter, og du modtager bekræftelse i e-Boks.",
+        links: ["pplus.dk/pensionsordning/bliv-klogere", "pplus.dk/min-pension"],
+      },
+      nytjob: {
+        label: "Nyt job",
+        icon: "🎉",
+        color: PP_GREEN,
+        aabning: "Tak for din mail, og tillykke med det nye job. Her er hvad du skal vide om din pension i den forbindelse.",
+        svarblokke: [
+          { title: "Indbetalingen starter automatisk", tekst: "Når din nye arbejdsgiver indbetaler til P+, starter din ordning op igen. Du behøver ikke gøre noget. Vi sender brev i e-Boks når vi modtager første indbetaling.", vigtigt: true },
+          { title: "Stop private indbetalinger", tekst: "Har du sat private indbetalinger op via netbank? Dem skal du selv stoppe — det sker ikke automatisk.", vigtigt: true },
+          { title: "Dine forsikringer genaktiveres", tekst: "Var du på bidragsfri dækning, overgår du automatisk til fuld dækning igen.", vigtigt: false },
+          { title: "Godt tidspunkt for et pensionseftersyn", tekst: "Jobskifte er en god anledning til at tjekke: Passer fordelingen mellem livrente og ratepension? Har du den rigtige risikoprofil?", vigtigt: false },
+        ],
+        handling: "Har du brug for, at vi kigger din ordning igennem i forbindelse med jobskiftet?",
+        links: ["pplus.dk/min-pension", "pplus.dk/raadgivning"],
+      },
+      barsel: {
+        label: "Barsel / orlov",
+        icon: "👶",
+        color: "#8E44AD",
+        aabning: "Tak for din mail. Her er hvad du skal vide om din pension under barsel.",
+        svarblokke: [
+          { title: "De fleste arbejdsgivere indbetaler under barsel", tekst: "Hvis du får løn under barsel, fortsætter pensionsindbetalingen typisk. Tjek med din HR-afdeling — det varierer.", vigtigt: true },
+          { title: "Uden løn: Bidragsfri dækning", tekst: "Stopper indbetalingerne, er du automatisk dækket i 3 måneder. Perioden kan forlænges.", vigtigt: false },
+          { title: "Opsparingen vokser stadig", tekst: "Selvom indbetalingerne pauser, er din opsparing fortsat investeret og genererer afkast.", vigtigt: false },
+        ],
+        handling: "Vil du have, at jeg tjekker om din arbejdsgiver indbetaler pension under din barsel?",
+        links: ["pplus.dk/pensionsordning/bliv-klogere"],
+      },
+      pensionering: {
+        label: "Nærmer sig pension",
+        icon: "🌅",
+        color: PP_WARN,
+        aabning: "Tak for din henvendelse. Her er et overblik over dine muligheder for pensionsovergang.",
+        svarblokke: [
+          { title: "Din pensionsalder", tekst: "Du kan tidligst få udbetalt fra P+ 3 år før folkepensionsalderen. Men du bestemmer selv hvornår.", vigtigt: true },
+          { title: "Kør en pensionsprognose", tekst: "Log ind på Min Pension og se hvad du kan forvente i månedlig udbetaling fra livrente, ratepension og eventuel aldersopsparing.", vigtigt: true },
+          { title: "Ratepension: Vælg din periode", tekst: "Standard er 10 år, men du kan vælge op til 30. Kortere = højere beløb i starten. Længere = mere tryghed.", vigtigt: false },
+          { title: "Forsikringerne stopper ved pension", tekst: "Invalidepension og sundhedsforsikring ophører. Udbetalingssikring til partner fortsætter, hvis tilvalgt.", vigtigt: false },
+        ],
+        handling: "Skal vi booke et pensionseftersyn, så vi kan gennemgå dine muligheder?",
+        links: ["pplus.dk/min-pension", "pplus.dk/raadgivning"],
+      },
+      skilsmisse: {
+        label: "Skilsmisse",
+        icon: "💔",
+        color: "#C0392B",
+        aabning: "Tak for din mail. Der er et par ting i din pension det er værd at tjekke i den forbindelse.",
+        svarblokke: [
+          { title: "Opdater dine begunstigede", tekst: "Din eks-ægtefælle kan stadig stå som begunstiget på dødsfaldssum og udbetalingssikring. Det er vigtigt at opdatere.", vigtigt: true },
+          { title: "Overvej udbetalingssikring", tekst: "Har du udbetalingssikring? Den dækker din ægtefælle. Ved skilsmisse kan det give mening at fravælge den og bruge pengene på din egen pension.", vigtigt: true },
+          { title: "Pension og bodeling", tekst: "Pension kan indgå i bodelingen. Vi anbefaler at tale med en advokat — vi leverer de nødvendige oplysninger.", vigtigt: false },
+        ],
+        handling: "Skal jeg sende dig en oversigt over dine nuværende begunstigede?",
+        links: ["pplus.dk/min-pension", "pplus.dk/pensionsordning/forsikringer/udbetalingssikring"],
+      },
+      indbetaling: {
+        label: "Ekstra indbetaling",
+        icon: "💰",
+        color: PP_BLUE,
+        aabning: "Tak for din henvendelse. Her er dine muligheder for ekstra indbetaling.",
+        svarblokke: [
+          { title: "Aldersopsparing (max ca. 9.100 kr./år)", tekst: "Lav skat på afkast (15,3%), og udbetalingen påvirker ikke folkepensionen. Du kan kun indbetale via engangsindskud — kontakt os for indbetalingskort.", vigtigt: true },
+          { title: "Frivillig ekstra indbetaling", tekst: "Du kan indbetale ekstra til ratepension eller livrente. Minimum 2.000 kr./md. løbende, eller som engangsbeløb. Fradragsberettiget.", vigtigt: false },
+          { title: "Børns aldersopsparing", tekst: "Det er ikke muligt at oprette aldersopsparing til børn hos P+. Det skal ske via en bank (fx Nordnet).", vigtigt: false },
+        ],
+        handling: "Skal jeg sende dig et indbetalingskort til aldersopsparing?",
+        links: ["pplus.dk/pensionsordning/opsparing/aldersopsparing"],
+      },
+      forsikring: {
+        label: "Forsikringsspørgsmål",
+        icon: "🛡️",
+        color: "#2980B9",
+        aabning: "Tak for din mail. Her er et overblik over dine forsikringer hos P+.",
+        svarblokke: [
+          { title: "Dine forsikringer i P+", tekst: "Som medlem kan du have invalidepension, dødsfaldssum, udbetalingssikring, depotsikring og sundhedsforsikring. Hvilke du har afhænger af din ordning.", vigtigt: true },
+          { title: "Hvad koster forsikringerne?", tekst: "Præmien trækkes fra din opsparing. Den præcise pris afhænger af din alder, dine dækninger og dit indbetalingsniveau. Tjek Min Pension for dit overblik.", vigtigt: false },
+          { title: "Sundhedsforsikring", tekst: "Med P+ Livscyklus kan du have adgang til online læge og psykolog via din mobiltelefon.", vigtigt: false },
+        ],
+        handling: "Vil du have, at jeg sender dig en oversigt over præcis hvilke forsikringer du har og hvad de koster?",
+        links: ["pplus.dk/pensionsordning/forsikringer", "pplus.dk/min-pension"],
+      },
+    };
+
+    // ── Mailanalyse-motor ─────────────────────────────────────────────
+    function analyserMail(mailTekst) {
+      const tekst = mailTekst.toLowerCase();
+      const result = {
+        navn: null,
+        situationer: [],
+        spørgsmål: [],
+        tone: "neutral",
+        tips: [],
+      };
+
+      // ── Find navn ──
+      // Tjek signatur-mønstre
+      const signaturMønstre = [
+        /(?:venlig hilsen|mvh|hilsen|vh|best regards|regards|med venlig hilsen)[,.\s\n\r]+([A-ZÆØÅ][a-zæøåé]+)/i,
+        /(?:^|\n)([A-ZÆØÅ][a-zæøåé]+)\s*$/m,
+        /(?:^|\n)--\s*\n([A-ZÆØÅ][a-zæøåé]+)/m,
+        /(?:^|\n)([A-ZÆØÅ][a-zæøåé]+)\s+[A-ZÆØÅ][a-zæøåé]+\s*\n.*(?:tlf|tel|mob|m:|t:|\+45)/im,
+      ];
+
+      for (const mønster of signaturMønstre) {
+        const match = mailTekst.match(mønster);
+        if (match && match[1]) {
+          const potentialName = match[1].trim();
+          const excludeWords = ["hej", "tak", "kære", "dear", "hello", "hi", "hey", "og", "den", "det", "med", "fra", "til", "jeg", "min", "mit", "mine", "hvis", "kan", "vil", "har", "var", "men", "som", "der", "for", "ved"];
+          if (!excludeWords.includes(potentialName.toLowerCase()) && potentialName.length > 1) {
+            result.navn = potentialName;
+            break;
+          }
+        }
+      }
+
+      // Fallback: "Jeg hedder X" / "Mit navn er X"
+      if (!result.navn) {
+        const navnMatch = mailTekst.match(/(?:jeg hedder|mit navn er|jeg er)\s+([A-ZÆØÅ][a-zæøåé]+)/i);
+        if (navnMatch) result.navn = navnMatch[1];
+      }
+
+      // ── Detekter situationer ──
+      if (/fyr|fritstil|opsagt|afskedig|mistet.*job|mist.*arbejd|ledig|dagpenge|a-kasse/i.test(tekst)) {
+        result.situationer.push("fyret");
+      }
+      if (/nyt job|ny arbejdsgiver|starter.*hos|begynder.*hos|ansat.*hos|tiltrådt|tiltr/i.test(tekst)) {
+        result.situationer.push("nytjob");
+      }
+      if (/barsel|orlov|gravid|fødsel|forældreorlov|fædreorlov/i.test(tekst)) {
+        result.situationer.push("barsel");
+      }
+      if (/pension(?!s)|gå.*pension|stoppe.*arbejde|fratræd|efterløn|folkepension|pensionist/i.test(tekst)) {
+        result.situationer.push("pensionering");
+      }
+      if (/skilsmisse|separation|skilt|skilles|eks-|eksmand|ekskone|bodeling/i.test(tekst)) {
+        result.situationer.push("skilsmisse");
+      }
+      if (/ekstra.*indbetal|indbetal.*ekstra|aldersopsparing|spare.*op|frivillig.*indbetal|indbetalingskort/i.test(tekst)) {
+        result.situationer.push("indbetaling");
+      }
+      if (/forsikring|dækning|invalide|dødsfaldssum|sundhedsforsikring|udbetalingssikring|depotsikring/i.test(tekst)) {
+        result.situationer.push("forsikring");
+      }
+
+      // ── Detekter konkrete spørgsmål ──
+      if (/hvad koster|hvad er prisen|hvad betaler|hvad skal jeg betale|pris/i.test(tekst)) {
+        result.spørgsmål.push("Medlemmet spørger til pris/omkostninger — giv et konkret tal.");
+      }
+      if (/hvordan|hvorledes|hvad gør jeg|hvad skal jeg/i.test(tekst)) {
+        result.spørgsmål.push("Medlemmet beder om en vejledning — forklar trin for trin.");
+      }
+      if (/kan jeg|er det muligt|mulighed for|må jeg/i.test(tekst)) {
+        result.spørgsmål.push("Medlemmet spørger om noget er muligt — svar klart ja/nej med forklaring.");
+      }
+      if (/hvornår|hvor lang tid|tidshorisont|frist/i.test(tekst)) {
+        result.spørgsmål.push("Medlemmet spørger til timing — giv konkrete datoer/perioder.");
+      }
+      if (/beholde|miste|ryger|forsvinder|mister jeg/i.test(tekst)) {
+        result.spørgsmål.push("Medlemmet er bekymret for at miste noget — berolig og forklar konkret.");
+      }
+
+      // ── Detekter tone/bekymring ──
+      if (/bekymr|bange|nervøs|stress|presset|svært|hårdt|frustr/i.test(tekst)) {
+        result.tone = "bekymret";
+      }
+      if (/akut|haster|hurtig|snarest|straks|omgående/i.test(tekst)) {
+        result.tone = "akut";
+      }
+      if (/tak|fantastisk|dejligt|fedt|super|glæder/i.test(tekst)) {
+        result.tone = "positiv";
+      }
+
+      // ── Generer tips ──
+      if (result.situationer.includes("fyret")) {
+        result.tips.push("Nævn prisen på forsikringer proaktivt (495 kr./md. + 60% afgift) — det er næsten altid det, de vil vide.");
+      }
+      if (result.tone === "akut") {
+        result.tips.push("Mailen virker presserende — prioriter det vigtigste først og vær konkret.");
+      }
+      if (result.spørgsmål.length === 0) {
+        result.tips.push("Mailen indeholder ikke et direkte spørgsmål — men læs mellem linjerne: Hvad har medlemmet egentlig brug for at vide?");
+      }
+      if (result.situationer.length === 0) {
+        result.tips.push("Situationen er ikke umiddelbart genkendelig — stil opklarende spørgsmål i dit svar.");
+      }
+      result.tips.push("Tjek at du bruger medlemmets foretrukne navn — ikke nødvendigvis det der står i CRM.");
+      result.tips.push("Hold svaret kort og struktureret. Brug overskrifter. Undgå jargon.");
+
+      // Fallback situation
+      if (result.situationer.length === 0) {
+        result.situationer.push("forsikring");
+      }
+
+      return result;
+    }
+
+    // ── Komponenter ───────────────────────────────────────────────────
+    function AnalyseTag({ label, color }) {
+      return (
+        <span style={{ fontSize: 11, background: `${color}15`, color, padding: "3px 10px", borderRadius: 20, fontWeight: 600 }}>
+          {label}
+        </span>
+      );
+    }
+
+    // ── Hovedapplikation ──────────────────────────────────────────────
+    function RaadgiverDashboardV2() {
+      const [mailTekst, setMailTekst] = React.useState("");
+      const [analyse, setAnalyse] = React.useState(null);
+      const [isAnalysing, setIsAnalysing] = React.useState(false);
+      const [checkedItems, setCheckedItems] = React.useState({});
+      const [svarTekst, setSvarTekst] = React.useState("");
+      const [jargonFund, setJargonFund] = React.useState([]);
+      const textareaRef = React.useRef(null);
+
+      function handleAnalyser() {
+        if (!mailTekst.trim()) return;
+        setIsAnalysing(true);
+        setCheckedItems({});
+        // Simuler kort "tænketid"
+        setTimeout(() => {
+          const result = analyserMail(mailTekst);
+          setAnalyse(result);
+          setIsAnalysing(false);
+        }, 800);
+      }
+
+      function handleReset() {
+        setMailTekst("");
+        setAnalyse(null);
+        setCheckedItems({});
+        setSvarTekst("");
+        setJargonFund([]);
+      }
+
+      function handleTjekSvar() {
+        const fund = analyserSvarForJargon(svarTekst);
+        setJargonFund(fund);
+      }
+
+      function toggleCheck(key) {
+        setCheckedItems((prev) => ({ ...prev, [key]: !prev[key] }));
+      }
+
+      const primærSituation = analyse ? VIDENSBASE[analyse.situationer[0]] : null;
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#ECEEF1", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+          {/* Header */}
+          <div style={{ background: PP_DARK, color: "#FFF", padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 18 }}>📋</span>
+              <span style={{ fontWeight: 700, fontSize: 16 }}>P+ Rådgiver-Dashboard</span>
+              <span style={{ fontSize: 10, background: PP_ACCENT, color: "#FFF", padding: "2px 8px", borderRadius: 10, fontWeight: 600, marginLeft: 4 }}>PROTOTYPE</span>
+            </div>
+            {analyse && (
+              <button onClick={handleReset} style={{ background: "rgba(255,255,255,0.12)", border: "none", color: "#FFF", padding: "5px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>
+                Ny henvendelse
+              </button>
+            )}
+          </div>
+
+          {/* ── Mailindtastning (før analyse) ── */}
+          {!analyse && (
+            <div style={{ maxWidth: 700, margin: "0 auto", padding: "32px 20px" }}>
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <h1 style={{ fontSize: 24, color: PP_DARK, fontWeight: 600, margin: "0 0 8px" }}>
+                  Indsæt medlemmets mail
+                </h1>
+                <p style={{ fontSize: 14, color: "#6B7280", margin: 0, lineHeight: 1.5 }}>
+                  Kopier mailen herind. Dashboardet analyserer indholdet og giver dig et empatisk, klart svar klar til at sende.
+                </p>
+              </div>
+
+              <div style={{ background: "#FFF", borderRadius: 16, border: "1px solid #D1D5DB", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                <textarea
+                  ref={textareaRef}
+                  value={mailTekst}
+                  onChange={(e) => setMailTekst(e.target.value)}
+                  placeholder={"Indsæt medlemmets mail her...\n\nEksempel:\n\"Hej. Jeg er blevet fritstillet og kan se at mine forsikringer ryger 1. april. Hvad koster det at beholde dem?\n\nBastian\""}
+                  style={{
+                    width: "100%",
+                    minHeight: 240,
+                    padding: 20,
+                    border: "none",
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                    color: "#1F2937",
+                    outline: "none",
+                  }}
+                />
+                <div style={{ padding: "12px 20px", borderTop: "1px solid #F3F4F6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "#9CA3AF" }}>
+                    {mailTekst.length > 0 ? `${mailTekst.length} tegn` : ""}
+                  </span>
+                  <button
+                    onClick={handleAnalyser}
+                    disabled={!mailTekst.trim() || isAnalysing}
+                    style={{
+                      padding: "10px 28px",
+                      background: mailTekst.trim() ? PP_BLUE : "#D1D5DB",
+                      color: "#FFF",
+                      border: "none",
+                      borderRadius: 10,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: mailTekst.trim() ? "pointer" : "default",
+                      fontFamily: "inherit",
+                      transition: "background 0.2s",
+                    }}
+                  >
+                    {isAnalysing ? "Analyserer..." : "Analysér mail →"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Eksempel-mails */}
+              <div style={{ marginTop: 20 }}>
+                <p style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 8 }}>Eller prøv med et eksempel:</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[
+                    { label: "Fyret-eksempel", tekst: "Hej. Jeg har fået en mail om at mine forsikringer ryger 1/4. Jeg blev fritstillet tilbage i september. Jeg kunne godt tænke mig at beholde forsikringerne - det gør jeg vel hvis jeg indbetaler minimumssatsen på de der 1400 kr. om måneden, ik?\n\nBastian Kjar\nM: 26 23 79 45" },
+                    { label: "Nyt job-eksempel", tekst: "Hej P+\n\nJeg er lige startet i nyt job og vil gerne sikre mig at min pension følger med. Jeg har tidligere indbetalt privat via netbank - skal jeg stoppe det?\n\nMvh\nSofie" },
+                    { label: "Aldersopsparing", tekst: "Hejsa. Kan jeg oprette en aldersopsparing til mine to, snart 3, børn hos jer? Nordnet har en ret fleksibel løsning men vil hellere samle det hele hos jer\n\n--\nBastian" },
+                  ].map((ex, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setMailTekst(ex.tekst)}
+                      style={{ padding: "6px 14px", background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 12, color: PP_BLUE, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
+                    >
+                      {ex.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Analyseresultat ── */}
+          {analyse && (
+            <div style={{ display: "flex", maxWidth: 1140, margin: "0 auto", gap: 20, padding: "20px 16px", alignItems: "start" }}>
+
+              {/* ── Venstre: Originalmail + analyse ── */}
+              <div style={{ width: 340, flexShrink: 0 }}>
+                {/* Originalmail */}
+                <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 18, marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Medlemmets mail</div>
+                  <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, whiteSpace: "pre-wrap", maxHeight: 180, overflowY: "auto" }}>
+                    {mailTekst}
+                  </div>
+                </div>
+
+                {/* AI-analyse */}
+                <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 18, marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Analyse</div>
+
+                  {/* Navn */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 4 }}>Detekteret navn</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: analyse.navn ? PP_GREEN : PP_ACCENT }}>
+                      {analyse.navn || "Ikke fundet — husk at spørge!"}
+                    </div>
+                  </div>
+
+                  {/* Situationer */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6 }}>Identificerede situationer</div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {analyse.situationer.map((s) => {
+                        const vb = VIDENSBASE[s];
+                        return vb ? <AnalyseTag key={s} label={`${vb.icon} ${vb.label}`} color={vb.color} /> : null;
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Spørgsmål */}
+                  {analyse.spørgsmål.length > 0 && (
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6 }}>Konkrete spørgsmål at besvare</div>
+                      {analyse.spørgsmål.map((sp, i) => (
+                        <div key={i} style={{ display: "flex", gap: 8, alignItems: "start", marginBottom: 6 }}>
+                          <span style={{ color: PP_ACCENT, fontWeight: 700, flexShrink: 0, fontSize: 12 }}>!</span>
+                          <span style={{ fontSize: 12, color: "#374151", lineHeight: 1.4 }}>{sp}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Tone */}
+                  <div>
+                    <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 4 }}>Tone i mailen</div>
+                    <AnalyseTag
+                      label={analyse.tone === "bekymret" ? "😟 Bekymret" : analyse.tone === "akut" ? "🔴 Akut/presserende" : analyse.tone === "positiv" ? "😊 Positiv" : "📝 Neutral"}
+                      color={analyse.tone === "bekymret" ? PP_WARN : analyse.tone === "akut" ? PP_ACCENT : analyse.tone === "positiv" ? PP_GREEN : "#6B7280"}
+                    />
+                  </div>
+                </div>
+
+                {/* Tips */}
+                <div style={{ background: `${PP_WARN}08`, border: `1px solid ${PP_WARN}25`, borderRadius: 14, padding: 18 }}>
+                  <div style={{ fontSize: 11, color: PP_WARN, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                    💡 Tips til dit svar
+                  </div>
+                  {analyse.tips.map((tip, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8, alignItems: "start", marginBottom: 8 }}>
+                      <span style={{ color: PP_WARN, fontWeight: 700, flexShrink: 0, fontSize: 11 }}>→</span>
+                      <span style={{ fontSize: 12, color: "#4B5563", lineHeight: 1.5 }}>{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Højre: Svarforslag ── */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {primærSituation && (
+                  <>
+                    {/* Svarforslag */}
+                    <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 22, marginBottom: 14 }}>
+                      <h2 style={{ margin: "0 0 4px", fontSize: 18, color: PP_DARK, fontWeight: 600 }}>
+                        Foreslået svar
+                      </h2>
+                      <p style={{ margin: "0 0 16px", fontSize: 14, color: "#6B7280", lineHeight: 1.5 }}>
+                        "Hej {analyse.navn || "[navn]"} — {primærSituation.aabning.charAt(0).toLowerCase() + primærSituation.aabning.slice(1)}"
+                      </p>
+                      {primærSituation.svarblokke.map((blok, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            padding: "12px 14px",
+                            borderRadius: 10,
+                            background: blok.vigtigt ? `${primærSituation.color}05` : "#FAFAFA",
+                            borderLeft: `3px solid ${blok.vigtigt ? primærSituation.color : "#E5E7EB"}`,
+                            marginBottom: 8,
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                            <h4 style={{ margin: 0, fontSize: 13, color: PP_DARK, fontWeight: 600 }}>{blok.title}</h4>
+                            {blok.vigtigt && (
+                              <span style={{ fontSize: 9, background: `${primærSituation.color}15`, color: primærSituation.color, padding: "2px 7px", borderRadius: 8, fontWeight: 700 }}>VIGTIGT</span>
+                            )}
+                          </div>
+                          <p style={{ margin: 0, fontSize: 13, color: "#4B5563", lineHeight: 1.6 }}>{blok.tekst}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Andre situationer */}
+                    {analyse.situationer.length > 1 && (
+                      <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 22, marginBottom: 14 }}>
+                        <h3 style={{ margin: "0 0 12px", fontSize: 14, color: "#6B7280", fontWeight: 600 }}>
+                          Relaterede emner i mailen
+                        </h3>
+                        {analyse.situationer.slice(1).map((s) => {
+                          const vb = VIDENSBASE[s];
+                          if (!vb) return null;
+                          return (
+                            <div key={s} style={{ marginBottom: 12 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                                <span>{vb.icon}</span>
+                                <span style={{ fontWeight: 600, fontSize: 14, color: PP_DARK }}>{vb.label}</span>
+                              </div>
+                              {vb.svarblokke.filter((b) => b.vigtigt).map((blok, i) => (
+                                <div key={i} style={{ padding: "10px 14px", background: "#FAFAFA", borderRadius: 8, borderLeft: `3px solid ${vb.color}`, marginBottom: 6 }}>
+                                  <h4 style={{ margin: "0 0 2px", fontSize: 12, color: PP_DARK, fontWeight: 600 }}>{blok.title}</h4>
+                                  <p style={{ margin: 0, fontSize: 12, color: "#4B5563", lineHeight: 1.5 }}>{blok.tekst}</p>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Næste skridt */}
+                    <div style={{ background: `${PP_GREEN}08`, border: `1px solid ${PP_GREEN}25`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 18, flexShrink: 0 }}>✅</span>
+                      <div>
+                        <div style={{ fontSize: 10, color: PP_GREEN, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Afslut med et konkret næste skridt</div>
+                        <p style={{ margin: 0, fontSize: 13, color: "#374151" }}>"{primærSituation.handling}"</p>
+                      </div>
+                    </div>
+
+                    {/* Links */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                      {primærSituation.links.map((link, i) => (
+                        <div key={i} style={{ padding: "6px 12px", background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 11, color: PP_BLUE, fontWeight: 600 }}>
+                          🔗 {link}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ── Skriv dit svar + jargon-tjek ── */}
+                    <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 18, marginBottom: 14 }}>
+                      <h4 style={{ margin: "0 0 10px", fontSize: 11, color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
+                        ✍️ Skriv dit svar — og tjek det for jargon
+                      </h4>
+                      <textarea
+                        value={svarTekst}
+                        onChange={(e) => { setSvarTekst(e.target.value); setJargonFund([]); }}
+                        placeholder={"Skriv eller indsæt dit svar til medlemmet her...\n\nDashboardet tjekker automatisk for pensionsjargon og foreslår klarere alternativer."}
+                        style={{
+                          width: "100%",
+                          minHeight: 140,
+                          padding: 14,
+                          border: "1px solid #E5E7EB",
+                          borderRadius: 10,
+                          fontSize: 13,
+                          lineHeight: 1.7,
+                          fontFamily: "inherit",
+                          resize: "vertical",
+                          boxSizing: "border-box",
+                          color: "#1F2937",
+                          outline: "none",
+                        }}
+                      />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+                        <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+                          {svarTekst.length > 0 ? `${svarTekst.length} tegn` : ""}
+                        </span>
+                        <button
+                          onClick={handleTjekSvar}
+                          disabled={!svarTekst.trim()}
+                          style={{
+                            padding: "8px 20px",
+                            background: svarTekst.trim() ? PP_WARN : "#D1D5DB",
+                            color: "#FFF",
+                            border: "none",
+                            borderRadius: 8,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: svarTekst.trim() ? "pointer" : "default",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          🔍 Tjek for jargon
+                        </button>
+                      </div>
+
+                      {/* Jargon-resultater */}
+                      {jargonFund.length > 0 && (
+                        <div style={{ marginTop: 14, padding: 14, background: `${PP_ACCENT}06`, border: `1px solid ${PP_ACCENT}20`, borderRadius: 10 }}>
+                          <div style={{ fontSize: 12, color: PP_ACCENT, fontWeight: 700, marginBottom: 10 }}>
+                            ⚠️ {jargonFund.length} fagudtryk fundet — overvej at forklare eller erstatte:
+                          </div>
+                          {jargonFund.map((j, i) => (
+                            <div key={i} style={{ display: "flex", gap: 10, alignItems: "start", marginBottom: 8, paddingBottom: 8, borderBottom: i < jargonFund.length - 1 ? "1px solid #F3E8E8" : "none" }}>
+                              <span style={{
+                                fontSize: 9,
+                                padding: "2px 6px",
+                                borderRadius: 6,
+                                fontWeight: 700,
+                                flexShrink: 0,
+                                marginTop: 2,
+                                background: j.alvorlighed === "høj" ? `${PP_ACCENT}15` : j.alvorlighed === "middel" ? `${PP_WARN}15` : "#F3F4F6",
+                                color: j.alvorlighed === "høj" ? PP_ACCENT : j.alvorlighed === "middel" ? PP_WARN : "#6B7280",
+                              }}>
+                                {j.alvorlighed === "høj" ? "!!!" : j.alvorlighed === "middel" ? "!!" : "!"}
+                              </span>
+                              <div>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: PP_DARK }}>"{j.term}"</span>
+                                <div style={{ fontSize: 12, color: "#4B5563", marginTop: 2 }}>
+                                  → Skriv i stedet: <em>"{j.forklaring}"</em>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {jargonFund.length === 0 && svarTekst.trim() && jargonFund !== null && svarTekst.length > 20 && (
+                        <div style={{ marginTop: 14, padding: 12, background: `${PP_GREEN}08`, border: `1px solid ${PP_GREEN}20`, borderRadius: 10, fontSize: 13, color: PP_GREEN, fontWeight: 600 }}>
+                          ✓ Ingen pensionsjargon fundet — godt arbejde!
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Kvalitetstjek */}
+                    <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 18 }}>
+                      <h4 style={{ margin: "0 0 10px", fontSize: 11, color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
+                        ✓ Kvalitetstjek inden afsendelse
+                      </h4>
+                      {[
+                        `Bruger du "${analyse.navn || "???"}" — ikke et andet navn fra CRM?`,
+                        "Besvarer du det konkrete spørgsmål — med konkrete tal?",
+                        "Er tonen varm og empatisk — ikke kun transaktionel?",
+                        "Er sproget frit for jargon (eller er fagudtryk forklaret)?",
+                        "Afslutter du med ét klart næste skridt?",
+                        "Er formateringen ren (ingen blandet typografi fra copy-paste)?",
+                      ].map((item, i) => (
+                        <label key={i} style={{ display: "flex", gap: 10, alignItems: "start", marginBottom: 7, fontSize: 12, color: "#374151", cursor: "pointer" }}>
+                          <input type="checkbox" checked={!!checkedItems[i]} onChange={() => toggleCheck(i)} style={{ marginTop: 2, accentColor: PP_GREEN }} />
+                          <span style={{ textDecoration: checkedItems[i] ? "line-through" : "none", opacity: checkedItems[i] ? 0.5 : 1 }}>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(RaadgiverDashboardV2));
+  </script>
+</body>
+</html>
