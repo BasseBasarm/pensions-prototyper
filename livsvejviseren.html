@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Livsvejviseren | P+ Pensionskassen</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // ── Farver ────────────────────────────────────────────────────────
+    const PP_DARK = "#1A1A2E";
+    const PP_BLUE = "#0F3460";
+    const PP_ACCENT = "#E94560";
+    const PP_LIGHT = "#F8F9FA";
+
+    // ── Spørgsmålsdata ───────────────────────────────────────────────
+    const ALDER_OPTIONS = [
+      { id: "25-34", label: "25–34 år", icon: "🌱", desc: "Karrieren er i gang" },
+      { id: "35-44", label: "35–44 år", icon: "🌿", desc: "Midt i livet" },
+      { id: "45-54", label: "45–54 år", icon: "🌳", desc: "Erfaren og etableret" },
+      { id: "55-65", label: "55–65 år", icon: "🏔️", desc: "Pensionen nærmer sig" },
+    ];
+
+    const LIV_OPTIONS = [
+      { id: "single", label: "Single", icon: "🧑", desc: "Bor alene, ingen børn" },
+      { id: "par", label: "I parforhold", icon: "👫", desc: "Samboende eller gift, ingen børn" },
+      { id: "familie", label: "Børnefamilie", icon: "👨‍👩‍👧", desc: "Har hjemmeboende børn" },
+      { id: "tomrede", label: "Tomt rede", icon: "🏡", desc: "Børnene er flyttet hjemmefra" },
+    ];
+
+    const PRIORITET_OPTIONS = [
+      { id: "tryghed", label: "Tryghed", icon: "🛡️", desc: "Vil sikre mig selv og min familie" },
+      { id: "frihed", label: "Frihed", icon: "✈️", desc: "Vil have fleksibilitet og muligheder" },
+      { id: "vækst", label: "Mest mulig pension", icon: "📈", desc: "Vil have højest mulig udbetaling" },
+      { id: "tidlig", label: "Tidlig pension", icon: "🌅", desc: "Vil gå på pension så tidligt som muligt" },
+    ];
+
+    const VIDEN_OPTIONS = [
+      { id: "lav", label: "Nybegynder", icon: "🤷", desc: "Pension? Det er bare noget der bliver trukket..." },
+      { id: "middel", label: "Kender det basale", icon: "💡", desc: "Ved hvad livrente og ratepension er" },
+      { id: "hoej", label: "Ret godt inde i det", icon: "🎓", desc: "Har styr på det meste, vil optimere" },
+    ];
+
+    // ── Resultatmotor ─────────────────────────────────────────────────
+    function getAnbefalinger(answers) {
+      const { alder, liv, prioritet, viden } = answers;
+      const result = {
+        overskrift: "",
+        beskrivelse: "",
+        fokuspunkter: [],
+        handlinger: [],
+        pensionsprofil: "",
+      };
+
+      // Pensionsprofil
+      const profiler = {
+        "tryghed": "Trygheds-søgeren",
+        "frihed": "Friheds-elskeren",
+        "vækst": "Optimisten",
+        "tidlig": "Tidlig-pensionisten",
+      };
+      result.pensionsprofil = profiler[prioritet] || "Akademikeren";
+
+      // Overskrift baseret på alder + prioritet
+      if (alder === "25-34") {
+        result.overskrift = "Du har tid — og det er din superkraft";
+        result.beskrivelse = "Med 30+ år til pension har rentes rente-effekten enorm kraft. Selv små justeringer nu kan betyde hundredtusindvis af kroner senere. Det vigtigste du kan gøre? Forstå hvad du har — og ikke røre ved det for meget.";
+      } else if (alder === "35-44") {
+        result.overskrift = "Nu er det tid til at kigge under motorhjelmen";
+        result.beskrivelse = "Du er midt i karrieren, og din pension vokser stille. Men passer opsætningen stadig til dit liv? Måske har du fået børn, købt bolig, eller skiftet job. Det er det perfekte tidspunkt at tjekke at alt spiller sammen.";
+      } else if (alder === "45-54") {
+        result.overskrift = "Fra autopilot til bevidst strategi";
+        result.beskrivelse = "Med 10-20 år til pension begynder billedet at tage form. Nu kan du faktisk regne på det: Hvad får jeg udbetalt? Er det nok? Og hvad kan jeg nå at justere? Det er tid til at være konkret.";
+      } else {
+        result.overskrift = "Nedtællingen er i gang — i den gode forstand";
+        result.beskrivelse = "Pensionen er ikke længere abstrakt — den er lige om hjørnet. Nu handler det om at planlægge overgangen: Hvornår vil du stoppe? Hvordan vil du leve? Og passer din pension til den plan?";
+      }
+
+      // Fokuspunkter baseret på kombination
+      // Risikoprofil
+      if (alder === "25-34" || alder === "35-44") {
+        if (prioritet === "vækst") {
+          result.fokuspunkter.push({
+            title: "Overvej høj risiko i P+ Livscyklus",
+            desc: "Med mange år til pension kan du tåle udsving. Høj risiko har historisk givet bedre afkast over lange perioder. I 2025 gav P+ Livscyklus med medium risiko 12% — høj risiko kan give endnu mere over tid.",
+            priority: "high",
+          });
+        } else {
+          result.fokuspunkter.push({
+            title: "Din risikoprofil passer sandsynligvis",
+            desc: "P+ Livscyklus tilpasser automatisk din risiko efter alder. Med din tidshorisont er medium risiko et fornuftigt udgangspunkt. Men det er værd at tjekke om det matcher din komfortzone.",
+            priority: "medium",
+          });
+        }
+      } else {
+        result.fokuspunkter.push({
+          title: "Tjek din risikoprofil grundigt",
+          desc: "Når pensionen nærmer sig, skifter P+ Livscyklus automatisk til lavere risiko. Men det er vigtigt at du er komfortabel med balancen — du vil ikke have ubehagelige overraskelser tæt på mål.",
+          priority: "high",
+        });
+      }
+
+      // Forsikring baseret på livssituation
+      if (liv === "par" || liv === "familie") {
+        result.fokuspunkter.push({
+          title: "Sikr din partner med udbetalingssikring",
+          desc: "Din livsvarige pension stopper når du dør. Hvis din partner er afhængig af din indkomst, kan udbetalingssikring sikre at pensionen fortsætter til dem i op til 10 år. Det koster lidt — men trygheden kan være uvurderlig.",
+          priority: "high",
+        });
+        result.fokuspunkter.push({
+          title: "Tjek din begunstigelse på dødsfaldssummen",
+          desc: "Hvem får din dødsfaldssum? Er det den rigtige person? Mange glemmer at opdatere efter skilsmisse, nyt parforhold eller andre livsændringer. Det tager 2 minutter at checke.",
+          priority: "medium",
+        });
+      }
+      if (liv === "familie") {
+        result.fokuspunkter.push({
+          title: "Depotsikring kan beskytte dine børn",
+          desc: "Hvis du dør tidligt, sikrer depotsikringen at dine pensionsopsparinger udbetales til dine nærmeste — også selv om du ikke har nået at opbygge en stor pension endnu.",
+          priority: "medium",
+        });
+      }
+      if (liv === "single") {
+        result.fokuspunkter.push({
+          title: "Overvej om du har brug for forsikringer",
+          desc: "Uden partner eller børn har du måske ikke brug for udbetalingssikring eller en stor dødsfaldssum. De penge du sparer kan i stedet gå til din egen pension. Færre forsikringer = mere til dig selv.",
+          priority: "medium",
+        });
+      }
+
+      // Ratepension vs. livrente
+      if (prioritet === "frihed" || prioritet === "tidlig") {
+        result.fokuspunkter.push({
+          title: "Mere ratepension kan give dig frihed",
+          desc: "Hvis du drømmer om aktive år i starten af pensionistlivet — rejser, projekter, frivillighed — kan en større andel ratepension give dig ekstra penge netop dér. Den livsvarige tager over bagefter.",
+          priority: "medium",
+        });
+      }
+      if (prioritet === "tidlig") {
+        result.fokuspunkter.push({
+          title: "Ekstra indbetalinger kan rykke datoen",
+          desc: "Vil du gå på pension før tid? Så skal puljen være større. Overvej frivillig indbetaling og aldersopsparing (max ca. 9.100 kr./år i 2026). Over 10-15 år gør det en reel forskel.",
+          priority: "high",
+        });
+      }
+
+      // Aldersopsparing
+      if (alder !== "55-65") {
+        result.fokuspunkter.push({
+          title: "Udnyt aldersopsparingen",
+          desc: "Aldersopsparingen beskattes kun med 15,3% på afkastet — og udbetalingen påvirker ikke din folkepension. Det er en skattefordel de fleste overser. Du kan indbetale ca. 9.100 kr. om året.",
+          priority: viden === "hoej" ? "medium" : "high",
+        });
+      }
+
+      // Handlingsplan
+      if (viden === "lav") {
+        result.handlinger = [
+          { nr: 1, text: "Log ind på pplus.dk og se hvad du rent faktisk har", tid: "5 min" },
+          { nr: 2, text: "Læs \"Pension i 60 sekunder\" om livsvarig pension og ratepension", tid: "2 min" },
+          { nr: 3, text: "Tjek hvem der er begunstiget på din dødsfaldssum", tid: "2 min" },
+          { nr: 4, text: "Ring til P+ hvis noget er uklart — de er overraskende hjælpsomme", tid: "10 min" },
+        ];
+      } else if (viden === "middel") {
+        result.handlinger = [
+          { nr: 1, text: "Tjek din fordeling mellem livrente og ratepension — passer den til dit liv?", tid: "5 min" },
+          { nr: 2, text: "Overvej din risikoprofil i P+ Livscyklus", tid: "3 min" },
+          { nr: 3, text: "Gennemgå dine forsikringer — betaler du for noget du ikke har brug for?", tid: "5 min" },
+          { nr: 4, text: "Undersøg om aldersopsparing giver mening for dig", tid: "5 min" },
+        ];
+      } else {
+        result.handlinger = [
+          { nr: 1, text: "Kør en pensionsprognose på pplus.dk og vurdér om du er på sporet", tid: "10 min" },
+          { nr: 2, text: "Optimer fordelingen: livrente vs. ratepension baseret på dine pensionsplaner", tid: "5 min" },
+          { nr: 3, text: "Vurdér om du bør indbetale frivilligt ekstra", tid: "5 min" },
+          { nr: 4, text: "Gennemgå forsikringspakken — sørg for at du hverken er over- eller underforsikret", tid: "5 min" },
+        ];
+      }
+
+      return result;
+    }
+
+    // ── Komponenter ───────────────────────────────────────────────────
+    function OptionCard({ icon, label, desc, selected, onClick }) {
+      return (
+        <button
+          onClick={onClick}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            width: "100%",
+            padding: "14px 18px",
+            border: selected ? `2px solid ${PP_BLUE}` : "2px solid #E5E7EB",
+            borderRadius: 14,
+            background: selected ? `${PP_BLUE}08` : "#FFF",
+            cursor: "pointer",
+            textAlign: "left",
+            transition: "all 0.2s ease",
+            fontSize: 15,
+            fontFamily: "system-ui, sans-serif",
+          }}
+        >
+          <span style={{ fontSize: 28, flexShrink: 0 }}>{icon}</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, color: PP_DARK }}>{label}</div>
+            {desc && <div style={{ fontSize: 13, color: "#6B7280", marginTop: 1 }}>{desc}</div>}
+          </div>
+          {selected && <span style={{ color: PP_BLUE, fontSize: 20, flexShrink: 0 }}>✓</span>}
+        </button>
+      );
+    }
+
+    function ProgressDots({ step, total }) {
+      return (
+        <div style={{ display: "flex", gap: 6, marginBottom: 28 }}>
+          {Array.from({ length: total }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                height: 5,
+                borderRadius: 3,
+                background: i <= step ? PP_BLUE : "#E5E7EB",
+                transition: "background 0.4s",
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    // ── Hovedapplikation ──────────────────────────────────────────────
+    function Livsvejviseren() {
+      const [step, setStep] = React.useState(-1);
+      const [answers, setAnswers] = React.useState({});
+      const [fadeIn, setFadeIn] = React.useState(true);
+
+      const totalSteps = 4;
+
+      React.useEffect(() => {
+        setFadeIn(false);
+        const t = setTimeout(() => setFadeIn(true), 50);
+        return () => clearTimeout(t);
+      }, [step]);
+
+      function select(key, value) {
+        setAnswers((prev) => ({ ...prev, [key]: value }));
+        setTimeout(() => setStep((s) => s + 1), 250);
+      }
+
+      function reset() {
+        setStep(-1);
+        setAnswers({});
+      }
+
+      const result = step >= totalSteps ? getAnbefalinger(answers) : null;
+
+      // ── Splash ──
+      if (step === -1) {
+        return (
+          <div
+            style={{
+              minHeight: "100vh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: `linear-gradient(160deg, ${PP_DARK} 0%, ${PP_BLUE} 60%, #16537e 100%)`,
+              fontFamily: "'Georgia', 'Times New Roman', serif",
+              padding: 20,
+            }}
+          >
+            <div style={{ textAlign: "center", color: "#FFF", maxWidth: 500, animation: "fadeUp 0.8s ease-out" }}>
+              <div style={{ fontSize: 13, letterSpacing: 3, textTransform: "uppercase", opacity: 0.5, marginBottom: 20, fontFamily: "system-ui, sans-serif" }}>
+                P+ Pensionskassen for Akademikere
+              </div>
+              <h1 style={{ fontSize: 40, fontWeight: 400, margin: "0 0 16px", lineHeight: 1.2 }}>
+                Livsvejviseren
+              </h1>
+              <p style={{ fontSize: 17, opacity: 0.85, lineHeight: 1.7, marginBottom: 8, fontFamily: "system-ui, sans-serif" }}>
+                Din pension bør passe til dit liv — ikke omvendt.
+              </p>
+              <p style={{ fontSize: 14, opacity: 0.6, lineHeight: 1.6, marginBottom: 36, fontFamily: "system-ui, sans-serif" }}>
+                Svar på 4 spørgsmål og få en personlig pensionsvejledning
+                tilpasset din alder, livssituation og drømme.
+              </p>
+              <button
+                onClick={() => setStep(0)}
+                style={{
+                  padding: "14px 36px",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: PP_DARK,
+                  background: "#FFF",
+                  border: "none",
+                  borderRadius: 30,
+                  cursor: "pointer",
+                  fontFamily: "system-ui, sans-serif",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+                  transition: "transform 0.2s",
+                }}
+                onMouseEnter={(e) => (e.target.style.transform = "scale(1.03)")}
+                onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+              >
+                Start vejledningen →
+              </button>
+              <style>{`
+                @keyframes fadeUp {
+                  from { opacity: 0; transform: translateY(30px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
+            </div>
+          </div>
+        );
+      }
+
+      // ── Spørgsmål & Resultat ──
+      return (
+        <div style={{ minHeight: "100vh", background: PP_LIGHT, fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          {/* Header */}
+          <div
+            style={{
+              background: PP_DARK,
+              color: "#FFF",
+              padding: "12px 24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+              fontFamily: "system-ui, sans-serif",
+            }}
+          >
+            <span style={{ fontWeight: 600, fontSize: 15 }}>Livsvejviseren</span>
+            <button
+              onClick={reset}
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                border: "none",
+                color: "#FFF",
+                padding: "5px 14px",
+                borderRadius: 20,
+                cursor: "pointer",
+                fontSize: 12,
+                fontFamily: "inherit",
+              }}
+            >
+              Start forfra
+            </button>
+          </div>
+
+          <div
+            style={{
+              maxWidth: 580,
+              margin: "0 auto",
+              padding: "28px 20px 48px",
+              opacity: fadeIn ? 1 : 0,
+              transform: fadeIn ? "translateY(0)" : "translateY(10px)",
+              transition: "all 0.3s ease",
+            }}
+          >
+            {step < totalSteps && <ProgressDots step={step} total={totalSteps} />}
+
+            {/* Step 0: Alder */}
+            {step === 0 && (
+              <>
+                <h2 style={{ color: PP_DARK, fontSize: 26, fontWeight: 400, marginBottom: 6 }}>Hvor gammel er du?</h2>
+                <p style={{ color: "#6B7280", marginBottom: 22, fontSize: 14, fontFamily: "system-ui, sans-serif" }}>
+                  Din alder er den vigtigste faktor for din pensionsstrategi.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {ALDER_OPTIONS.map((o) => (
+                    <OptionCard key={o.id} {...o} selected={answers.alder === o.id} onClick={() => select("alder", o.id)} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Step 1: Livssituation */}
+            {step === 1 && (
+              <>
+                <h2 style={{ color: PP_DARK, fontSize: 26, fontWeight: 400, marginBottom: 6 }}>Hvad er din livssituation?</h2>
+                <p style={{ color: "#6B7280", marginBottom: 22, fontSize: 14, fontFamily: "system-ui, sans-serif" }}>
+                  Det afgør hvilke forsikringer og sikkerhedsnet der er vigtige for dig.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {LIV_OPTIONS.map((o) => (
+                    <OptionCard key={o.id} {...o} selected={answers.liv === o.id} onClick={() => select("liv", o.id)} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Prioritet */}
+            {step === 2 && (
+              <>
+                <h2 style={{ color: PP_DARK, fontSize: 26, fontWeight: 400, marginBottom: 6 }}>Hvad er vigtigst for dig?</h2>
+                <p style={{ color: "#6B7280", marginBottom: 22, fontSize: 14, fontFamily: "system-ui, sans-serif" }}>
+                  Der er ingen forkerte svar — din pension skal passe til dine drømme.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {PRIORITET_OPTIONS.map((o) => (
+                    <OptionCard key={o.id} {...o} selected={answers.prioritet === o.id} onClick={() => select("prioritet", o.id)} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Step 3: Viden */}
+            {step === 3 && (
+              <>
+                <h2 style={{ color: PP_DARK, fontSize: 26, fontWeight: 400, marginBottom: 6 }}>Hvor meget ved du om pension?</h2>
+                <p style={{ color: "#6B7280", marginBottom: 22, fontSize: 14, fontFamily: "system-ui, sans-serif" }}>
+                  Så tilpasser vi sproget og detaljeniveauet til dig.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {VIDEN_OPTIONS.map((o) => (
+                    <OptionCard key={o.id} {...o} selected={answers.viden === o.id} onClick={() => select("viden", o.id)} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Resultat */}
+            {step >= totalSteps && result && (
+              <>
+                {/* Profilbanner */}
+                <div
+                  style={{
+                    background: `linear-gradient(135deg, ${PP_DARK}, ${PP_BLUE})`,
+                    color: "#FFF",
+                    borderRadius: 20,
+                    padding: "32px 28px",
+                    marginBottom: 28,
+                  }}
+                >
+                  <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 2, opacity: 0.6, marginBottom: 8, fontFamily: "system-ui, sans-serif" }}>
+                    Din pensionsprofil
+                  </div>
+                  <h2 style={{ fontSize: 22, fontWeight: 400, margin: "0 0 4px" }}>
+                    {result.pensionsprofil}
+                  </h2>
+                  <div style={{ fontSize: 13, opacity: 0.6, fontFamily: "system-ui, sans-serif", marginBottom: 16 }}>
+                    {ALDER_OPTIONS.find((a) => a.id === answers.alder)?.label} · {LIV_OPTIONS.find((l) => l.id === answers.liv)?.label}
+                  </div>
+                  <h3 style={{ fontSize: 26, fontWeight: 400, margin: "0 0 12px", lineHeight: 1.3 }}>
+                    {result.overskrift}
+                  </h3>
+                  <p style={{ margin: 0, opacity: 0.85, fontSize: 14, lineHeight: 1.7, fontFamily: "system-ui, sans-serif" }}>
+                    {result.beskrivelse}
+                  </p>
+                </div>
+
+                {/* Fokuspunkter */}
+                <h3 style={{ color: PP_DARK, fontSize: 20, fontWeight: 400, marginBottom: 16 }}>
+                  Det vi anbefaler dig at kigge på
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
+                  {result.fokuspunkter.map((fp, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        background: "#FFF",
+                        border: "1px solid #E5E7EB",
+                        borderRadius: 14,
+                        padding: "18px 20px",
+                        borderLeft: `4px solid ${fp.priority === "high" ? PP_ACCENT : PP_BLUE}`,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <h4 style={{ margin: 0, color: PP_DARK, fontSize: 15, fontFamily: "system-ui, sans-serif", fontWeight: 600 }}>
+                          {fp.title}
+                        </h4>
+                        {fp.priority === "high" && (
+                          <span style={{ fontSize: 10, background: `${PP_ACCENT}18`, color: PP_ACCENT, padding: "2px 8px", borderRadius: 10, fontWeight: 600, fontFamily: "system-ui, sans-serif" }}>
+                            Vigtigt
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: 0, color: "#4B5563", fontSize: 14, lineHeight: 1.6, fontFamily: "system-ui, sans-serif" }}>
+                        {fp.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Handlingsplan */}
+                <h3 style={{ color: PP_DARK, fontSize: 20, fontWeight: 400, marginBottom: 16 }}>
+                  Din handlingsplan
+                </h3>
+                <div
+                  style={{
+                    background: "#FFF",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    marginBottom: 32,
+                  }}
+                >
+                  {result.handlinger.map((h, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 14,
+                        padding: "16px 20px",
+                        borderBottom: i < result.handlinger.length - 1 ? "1px solid #F3F4F6" : "none",
+                        fontFamily: "system-ui, sans-serif",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: "50%",
+                          background: `${PP_BLUE}12`,
+                          color: PP_BLUE,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {h.nr}
+                      </div>
+                      <span style={{ flex: 1, fontSize: 14, color: "#374151", lineHeight: 1.5 }}>{h.text}</span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "#9CA3AF",
+                          background: "#F9FAFB",
+                          padding: "3px 10px",
+                          borderRadius: 20,
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                        }}
+                      >
+                        ~{h.tid}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA */}
+                <div
+                  style={{
+                    background: `${PP_BLUE}08`,
+                    border: `1px solid ${PP_BLUE}20`,
+                    borderRadius: 14,
+                    padding: 22,
+                    textAlign: "center",
+                    marginBottom: 24,
+                    fontFamily: "system-ui, sans-serif",
+                  }}
+                >
+                  <p style={{ margin: "0 0 14px", color: PP_DARK, fontSize: 15, lineHeight: 1.6 }}>
+                    Denne vejledning er et udgangspunkt — ikke en facitliste.
+                    For rådgivning tilpasset præcis din situation:
+                  </p>
+                  <div style={{ color: PP_BLUE, fontWeight: 700, fontSize: 16 }}>
+                    Ring til P+ på 3915 8800
+                  </div>
+                </div>
+
+                <button
+                  onClick={reset}
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    background: PP_DARK,
+                    color: "#FFF",
+                    border: "none",
+                    borderRadius: 12,
+                    fontSize: 15,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontFamily: "system-ui, sans-serif",
+                  }}
+                >
+                  Prøv igen med andre svar
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Livsvejviseren));
+  </script>
+</body>
+</html>
